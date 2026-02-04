@@ -1,8 +1,14 @@
 import requests
 import time
+from pystray import Icon, Menu, MenuItem
 
 def run(*args):
     icon = args[2]
+    url = 'http://127.0.0.1:5000/notify'
+    data = {'content': "balls"}
+    response = requests.post(url, data=data)
+
+
     baseuserdata = []
     index = 0
     scanfirst = True

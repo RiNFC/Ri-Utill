@@ -1,4 +1,3 @@
-from pypresence import Presence
 import time
 import sys
 from pystray import Icon, Menu, MenuItem
@@ -8,6 +7,11 @@ import dotenv
 import os
 import Addons.rpc as rpc
 import Addons.discfm as discfm
+from flask import Flask, request
+import signal
+import requests
+
+app = Flask(__name__)
 
 
 
@@ -15,14 +19,10 @@ import Addons.discfm as discfm
 
 # TODO
 #
-# 1, Make Exit Button end all threads
+# 1, Finish Notify Function for Addons (Addon for the Addons)
 #
 # 2, Put yt downloader gui into Utils
 #
-
-
-
-
 
 
 dotenv.load_dotenv()
@@ -42,13 +42,14 @@ def create_image():
     #start_rpc()
 ########### FUCKING FIX LATER ############
 
-addon_run_functions_exit_events = [threading.Event(), threading.Event()]
 
+
+arfa = []
 def on_exit(icon, item):
-    global running
-    running = False
-    for ee in addon_run_functions_exit_events:
-        ee.set()
+    global arfa
+    for targ in arfa:
+        targ[0].set()
+    requests.post("http://127.0.0.1:5000/shutdown")
     icon.stop()
     sys.exit()
 
@@ -60,6 +61,19 @@ icon = Icon(
     menu
 )
 
+icon.notify
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    os.kill(os.getpid(), signal.SIGINT)
+
+@app.route('/notify', methods=['POST'])
+def notification():
+    global icon
+    content = request.form.get('content')
+    if content:
+        icon.notify(content)
+        return 'Command received', 200
+    return 'No command received', 400
 
 addon_run_functions = [rpc.run, discfm.run]
 addon_run_functions_args = [(start,), (disc_token, icon)]
@@ -72,19 +86,24 @@ def gen_threads():
     for arf in addon_run_functions:
         args = addon_run_functions_args.pop(index)
         list_args = list(args)
-        list_args.insert(0, addon_run_functions_exit_events[index])
+        list_args.insert(0, threading.Event())
         addon_run_functions_args.insert(index, tuple(list_args))
-        addon_threads.append(threading.Thread(target=arf, args=addon_run_functions_args[index]))
+        addon_threads.append(threading.Thread(target=arf, args=addon_run_functions_args[index], daemon=True))
         index += 1
 
 def setup_tray():
     global icon
     global addon_threads
+    global arfa
+    arfa = addon_run_functions_args
     gen_threads()
     for thread in addon_threads:
         thread: threading.Thread
         thread.start()
         
-    icon.run()
+    icon_thread = threading.Thread(target=icon.run, daemon=True)
+    icon_thread.start()
+    app.run(host='127.0.0.1', port=5000)
+
 
 setup_tray()
