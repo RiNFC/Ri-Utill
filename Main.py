@@ -10,14 +10,61 @@ import Addons.rpc as rpc
 import Addons.discfm as discfm
 
 
+
+
+
+# TODO
+#
+# 1, Make Exit Button end all threads
+#
+# 2, Put yt downloader gui into Utils
+#
+
+
+
+
+
+
 dotenv.load_dotenv()
 disc_token = os.getenv("disctoken")
 start = int(time.time())
 
-addon_run_functions = [rpc.run, discfm.run]
-addon_run_functions_args = [(start,), (disc_token,)]
+def create_image():
+    image = Image.new("RGB", (64, 64), "black")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((16, 16, 48, 48), fill="yellow")
+    return image
+
+########### FUCKING FIX LATER ############
+#def restart_rpc():
+    #global rpcthread
+    #rpcthread = threading.Thread(target=rpc, daemon=True)
+    #start_rpc()
+########### FUCKING FIX LATER ############
+
 addon_run_functions_exit_events = [threading.Event(), threading.Event()]
+
+def on_exit(icon, item):
+    global running
+    running = False
+    for ee in addon_run_functions_exit_events:
+        ee.set()
+    icon.stop()
+    sys.exit()
+
+menu = Menu(MenuItem("Exit", on_exit))
+icon = Icon(
+    "Ri Utils",
+    create_image(),
+    "Ri Utils",
+    menu
+)
+
+
+addon_run_functions = [rpc.run, discfm.run]
+addon_run_functions_args = [(start,), (disc_token, icon)]
 addon_threads = []
+
 
 
 def gen_threads():
@@ -30,19 +77,6 @@ def gen_threads():
         addon_threads.append(threading.Thread(target=arf, args=addon_run_functions_args[index]))
         index += 1
 
-
-
-def on_exit(icon, item):
-    global running
-    running = False
-    icon.stop()
-    sys.exit()
-def create_image():
-    image = Image.new("RGB", (64, 64), "black")
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((16, 16, 48, 48), fill="yellow")
-    return image
-
 def setup_tray():
     global icon
     global addon_threads
@@ -52,23 +86,5 @@ def setup_tray():
         thread.start()
         
     icon.run()
-
-
-########### FUCKING FIX LATER ############
-#def restart_rpc():
-    #global rpcthread
-    #rpcthread = threading.Thread(target=rpc, daemon=True)
-    #start_rpc()
-########### FUCKING FIX LATER ############
-
-
-menu = Menu(MenuItem("Exit", on_exit))
-icon = Icon(
-    "Ri Utils",
-    create_image(),
-    "Ri Utils",
-    menu
-)
-
 
 setup_tray()

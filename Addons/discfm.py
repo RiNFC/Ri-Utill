@@ -2,12 +2,12 @@ import requests
 import time
 
 def run(*args):
-    global icon
+    icon = args[2]
     baseuserdata = []
     index = 0
     scanfirst = True
     scanindex = 0
-    while True:
+    while not args[0].is_set():
         if index == 0:
             response = requests.get("https://discord.com/api/v9/users/@me/relationships", headers={"authorization": args[1]})
             friends_json = response.json()
