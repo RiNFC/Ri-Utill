@@ -7,22 +7,12 @@ import dotenv
 import os
 import Addons.rpc as rpc
 import Addons.discfm as discfm
+from Addons.notify import notify
 from flask import Flask, request
 import signal
 import requests
 
 app = Flask(__name__)
-
-
-
-
-
-# TODO
-#
-# 1, Finish Notify Function for Addons (Addon for the Addons)
-#
-# 2, Put yt downloader gui into Utils
-#
 
 
 dotenv.load_dotenv()
@@ -35,14 +25,8 @@ def create_image():
     draw.rectangle((16, 16, 48, 48), fill="yellow")
     return image
 
-########### FUCKING FIX LATER ############
-#def restart_rpc():
-    #global rpcthread
-    #rpcthread = threading.Thread(target=rpc, daemon=True)
-    #start_rpc()
-########### FUCKING FIX LATER ############
-
-
+def start_ytd():
+    os.system('start "" pythonw Addons/ytdownloader.py')
 
 arfa = []
 def on_exit(icon, item):
@@ -53,7 +37,7 @@ def on_exit(icon, item):
     icon.stop()
     sys.exit()
 
-menu = Menu(MenuItem("Exit", on_exit))
+menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit))
 icon = Icon(
     "Ri Utils",
     create_image(),
@@ -61,7 +45,7 @@ icon = Icon(
     menu
 )
 
-icon.notify
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     os.kill(os.getpid(), signal.SIGINT)
@@ -70,16 +54,17 @@ def shutdown():
 def notification():
     global icon
     content = request.form.get('content')
+    title = request.form.get('title')
     if content:
-        icon.notify(content)
+        icon.notify(content, title)
         return 'Command received', 200
     return 'No command received', 400
 
+
+
 addon_run_functions = [rpc.run, discfm.run]
-addon_run_functions_args = [(start,), (disc_token, icon)]
+addon_run_functions_args = [(start,), (disc_token,)]
 addon_threads = []
-
-
 
 def gen_threads():
     index = 0
