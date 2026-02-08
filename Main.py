@@ -11,36 +11,57 @@ from Addons.notify import notify
 from flask import Flask, request
 import signal
 import requests
+import subprocess
+import json
+
 
 app = Flask(__name__)
 
-
 dotenv.load_dotenv()
 disc_token = os.getenv("disctoken")
-start = int(time.time())
+webhook = os.getenv("webhook")
 
-def create_image():
-    image = Image.new("RGB", (64, 64), "black")
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((16, 16, 48, 48), fill="yellow")
-    return image
+dr = False
+curt = time.time()
+if os.path.exists(".timecache"):
+    with open(".timecache", "r") as file:
+        data = json.load(file)
+        timed = data["end"]
+        if timed + 300 > curt:
+            start = data["ts"]
+            dr = True
+        else: start = curt
+else: start = curt
+if dr: os.remove(".timecache")
+
+
+
+if os.path.exists(".load"):
+    with open(".load", "r") as file:
+        data = json.load(file)
+    start = data["time"]
+    os.remove(".load")
 
 def start_ytd():
-    os.system('start "" pythonw Addons/ytdownloader.py')
+    subprocess.Popen(
+        [sys.executable, "Addons/ytdownloader.py"],
+        creationflags=subprocess.CREATE_NO_WINDOW
+    )
 
 arfa = []
 def on_exit(icon, item):
     global arfa
     for targ in arfa:
         targ[0].set()
+    with open(".timecache", "w") as file:
+        json.dump({"ts": start, "end": time.time()}, file)
     requests.post("http://127.0.0.1:5000/shutdown")
-    icon.stop()
-    sys.exit()
+    
 
 menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit))
 icon = Icon(
     "Ri Utils",
-    create_image(),
+    Image.open("icon/Icon.png"),
     "Ri Utils",
     menu
 )
@@ -63,7 +84,7 @@ def notification():
 
 
 addon_run_functions = [rpc.run, discfm.run]
-addon_run_functions_args = [(start,), (disc_token,)]
+addon_run_functions_args = [(start,), (disc_token, webhook)]
 addon_threads = []
 
 def gen_threads():
@@ -87,8 +108,9 @@ def setup_tray():
         thread.start()
         
     icon_thread = threading.Thread(target=icon.run, daemon=True)
-    icon_thread.start()
+    icon_thread.start() 
     app.run(host='127.0.0.1', port=5000)
+
 
 
 setup_tray()
