@@ -48,6 +48,12 @@ def start_ytd():
         creationflags=subprocess.CREATE_NO_WINDOW
     )
 
+def dt():
+    subprocess.Popen(
+        [sys.executable, "Addons/msgloaderopener.py"],
+        creationflags=subprocess.CREATE_NO_WINDOW
+    )
+
 arfa = []
 def on_exit(icon, item):
     global arfa
@@ -58,7 +64,7 @@ def on_exit(icon, item):
     requests.post("http://127.0.0.1:5000/shutdown")
     
 
-menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit))
+menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit), MenuItem("Discord_Tools", dt))
 icon = Icon(
     "Ri Utils",
     Image.open("icon/Icon.png"),

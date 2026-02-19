@@ -75,7 +75,7 @@ def load_friends(token):
             resjson2["banner"] if resjson2["banner"] is not None else resjson2["banner_color"]
         )
         friends.append(user)
-        time.sleep(3)
+        time.sleep(8)
     return(friends)
 
 
@@ -98,7 +98,7 @@ def run(*args):
                 requests.post(args[2], data={"content": f"{friend.display_name} Changed the following parts of their profile:\n{', '.join(dif)}"})
             nfriends.append(friend)
         
-            time.sleep(3)
+            time.sleep(8)
         
         friends = nfriends
 
