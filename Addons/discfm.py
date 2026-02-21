@@ -1,8 +1,13 @@
 import requests
 import time
 from Addons.notify import notify
+import dotenv
+import os
 
-global_token = ""
+dotenv.load_dotenv()
+
+def error_out():
+    notify("Error Occured. Recommended Restart.", "Disc FM")
 
 
 def compare_json(json1, json2):
@@ -37,9 +42,10 @@ class User():
                      "banner_tag": banner_tag}
     
     def reload(self):
-        response2 = requests.get(f"https://discord.com/api/v9/users/{self.id}/profile", headers={"authorization": global_token})
+        response2 = requests.get(f"https://discord.com/api/v9/users/{self.id}/profile", headers={"authorization": os.getenv("disctoken")})
         try: resjson2 = response2.json()["user"]
-        except: return(False)
+        except: 
+            return(False)
 
         self.display_name = resjson2["global_name"]
         self.username = resjson2["username"]
@@ -58,12 +64,16 @@ class User():
 
 
         
-def load_friends(token):
+def load_friends():
     friends = []
-    response = requests.get("https://discord.com/api/v9/users/@me/relationships", headers={"authorization": token})
+    response = requests.get("https://discord.com/api/v9/users/@me/relationships", headers={"authorization": os.getenv("disctoken")})
+    if response.status_code != 200:
+        return(0)
     resjson = response.json()
     for usr in resjson:
-        response2 = requests.get(f"https://discord.com/api/v9/users/{usr["id"]}/profile", headers={"authorization": token})
+        response2 = requests.get(f"https://discord.com/api/v9/users/{usr["id"]}/profile", headers={"authorization": os.getenv("disctoken")})
+        if response2.status_code == 404:
+            continue
         try: resjson2 = response2.json()["user"]
         except KeyError: continue
         user = User(
@@ -80,9 +90,12 @@ def load_friends(token):
 
 
 def run(*args):
-    global global_token
-    global_token = args[1]
-    friends = load_friends(args[1])
+    friends = load_friends()
+    if friends == 0:
+        print("1 point")
+        error_out()
+        return()
+
     notify("Friend List Loaded, Scanning Starting.", title="Disc FM")
     time.sleep(5)
     while not args[0].is_set():
@@ -95,7 +108,7 @@ def run(*args):
             dif = compare_json(friend_json, friend.json)
             if len(dif) > 0:
                 notify(f"{friend.display_name} has Changed the followings part of their Profile:\n{', '.join(dif)}", "Disc FM")
-                requests.post(args[2], data={"content": f"{friend.display_name} Changed the following parts of their profile:\n{', '.join(dif)}"})
+                requests.post(args[1], data={"content": f"{friend.display_name} Changed the following parts of their profile:\n{', '.join(dif)}"})
             nfriends.append(friend)
         
             time.sleep(8)

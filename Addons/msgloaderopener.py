@@ -7,7 +7,10 @@ import subprocess
 import sys
 
 
+info_label_redirect: tk.Label
+
 def file_select():
+    global info_label_redirect
     file_types = (
     ("Json files", "*.json"),
     ("All files", "*.*")
@@ -19,6 +22,7 @@ def file_select():
     except: pass
     shutil.copy(path, "./")
     os.rename(f"./{name}", "discord_messages.json")
+    info_label_redirect.config(text=f"File Selected:\n{name}")
 
 def open_viewer():
     subprocess.Popen(
@@ -44,10 +48,15 @@ root.resizable(False, False)
 file_button = tk.Button(root, text="File", command=file_select, bg="yellow")
 file_button.pack(side="top")
 
+info_label = tk.Label(root, text="Select File with Button Above", fg="yellow", bg="black")
+info_label.pack(anchor="center")
+
 viewer_button = tk.Button(root, text="Viewer", command=open_viewer, bg="yellow")
 viewer_button.pack(side="bottom")
 
 logger_button = tk.Button(root, text="Logger", command=open_logger, bg="yellow")
 logger_button.pack(side="bottom")
+
+info_label_redirect = info_label
 
 root.mainloop()

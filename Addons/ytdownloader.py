@@ -5,6 +5,8 @@ import shutil
 import re, requests
 from urllib.parse import urlparse
 
+
+#Thanks Stackoverflow
 def check_youtube_url(url, timeout=5):
     try:
         if not all(urlparse(url)[:2]):

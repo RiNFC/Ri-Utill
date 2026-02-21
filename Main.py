@@ -7,6 +7,7 @@ import dotenv
 import os
 import Addons.rpc as rpc
 import Addons.discfm as discfm
+import Addons.bot as mrsir
 from Addons.notify import notify
 from flask import Flask, request
 import signal
@@ -54,6 +55,12 @@ def dt():
         creationflags=subprocess.CREATE_NO_WINDOW
     )
 
+def start_mrsir():
+    subprocess.Popen(
+        [sys.executable, "Addons/bot.py"],
+        creationflags=subprocess.CREATE_NO_WINDOW
+    )
+
 arfa = []
 def on_exit(icon, item):
     global arfa
@@ -61,7 +68,7 @@ def on_exit(icon, item):
         targ[0].set()
     with open(".timecache", "w") as file:
         json.dump({"ts": start, "end": time.time()}, file)
-    requests.post("http://127.0.0.1:5000/shutdown")
+    requests.post("http://127.0.0.1:5766/shutdown")
     
 
 menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit), MenuItem("Discord_Tools", dt))
@@ -89,8 +96,8 @@ def notification():
 
 
 
-addon_run_functions = [rpc.run, discfm.run]
-addon_run_functions_args = [(start,), (disc_token, webhook)]
+addon_run_functions = [rpc.run, discfm.run, mrsir.run]
+addon_run_functions_args = [(start,), (webhook), ()]
 addon_threads = []
 
 def gen_threads():
@@ -115,7 +122,7 @@ def setup_tray():
         
     icon_thread = threading.Thread(target=icon.run, daemon=True)
     icon_thread.start() 
-    app.run(host='127.0.0.1', port=5000)
+    app.run(host='127.0.0.1', port=5766)
 
 
 
