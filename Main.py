@@ -71,7 +71,7 @@ def on_exit(icon, item):
     requests.post("http://127.0.0.1:5766/shutdown")
     
 
-menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Exit", on_exit), MenuItem("Discord_Tools", dt))
+menu = Menu(MenuItem("YT Downloader", start_ytd), MenuItem("Discord_Tools", dt), MenuItem("Exit", on_exit))
 icon = Icon(
     "Ri Utils",
     Image.open("icon/Icon.png"),
