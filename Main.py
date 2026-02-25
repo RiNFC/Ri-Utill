@@ -97,8 +97,11 @@ def notification():
 
 
 addon_run_functions = [rpc.run, discfm.run, mrsir.run]
-addon_run_functions_args = [(start,), (webhook), ()]
+addon_names = ["RPC", "Disc FM", "Bot"]
+addon_run_functions_args = [(start,), (webhook,), ()]
 addon_threads = []
+
+
 
 def gen_threads():
     index = 0

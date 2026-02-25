@@ -3,6 +3,18 @@ import time
 from Addons.notify import notify
 import dotenv
 import os
+import colorsys
+import random
+
+def random_vibrant_decimal():
+    h = random.random()
+    s = random.uniform(0.8, 1.0)
+    v = random.uniform(0.85, 1.0)
+
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    r, g, b = int(r * 255), int(g * 255), int(b * 255)
+
+    return (r << 16) + (g << 8) + b
 
 dotenv.load_dotenv()
 
@@ -43,8 +55,11 @@ class User():
     
     def reload(self):
         response2 = requests.get(f"https://discord.com/api/v9/users/{self.id}/profile", headers={"authorization": os.getenv("disctoken")})
-        try: resjson2 = response2.json()["user"]
+        try:
+            resjson2 = response2.json()["user"]
+            print(f"[{time.time()}] Reloaded user: {self.display_name}")
         except: 
+            print(f"[{time.time()}] Failed to reload user: {self.display_name}")
             return(False)
 
         self.display_name = resjson2["global_name"]
@@ -85,14 +100,17 @@ def load_friends():
             resjson2["banner"] if resjson2["banner"] is not None else resjson2["banner_color"]
         )
         friends.append(user)
+        print(f"Loaded friend: {user.display_name}")
         time.sleep(8)
     return(friends)
 
-
+retries = 0
+drt = False
 def run(*args):
+    global drt
+    global retries 
     friends = load_friends()
     if friends == 0:
-        print("1 point")
         error_out()
         return()
 
@@ -101,14 +119,44 @@ def run(*args):
     while not args[0].is_set():
         nfriends = []
         for friend in friends:
+            drt = False
             friend : User
             friend_json = friend.json
-            if not friend.reload():
+            
+            def _reload_friend():
+                global drt
+                global retries
+                try:
+                    if not friend.reload():
+                        drt = True
+                except requests.exceptions.ConnectionError:
+                    if retries > 3:
+                        print(f"[{time.time()}] Failed to reload friend: {friend.display_name}. Retrying ({retries}/3)")
+                        time.sleep(30)
+                        retries += 1
+                        _reload_friend()
+
+            _reload_friend()
+            
+            if drt:
                 continue
             dif = compare_json(friend_json, friend.json)
             if len(dif) > 0:
                 notify(f"{friend.display_name} has Changed the followings part of their Profile:\n{', '.join(dif)}", "Disc FM")
-                requests.post(args[1], data={"content": f"{friend.display_name} Changed the following parts of their profile:\n{', '.join(dif)}"})
+                d = requests.post(args[1], json={
+                    "embeds": [{
+                        "title": f"{friend.display_name} has Changed their Profile",
+                        "description": f"Changed the following parts of their profile:\n{', '.join(dif)}",
+                        "color": random_vibrant_decimal(),
+                        "fields": [
+                            {"name": "Display Name", "value": friend.display_name, "inline": True},
+                            {"name": "Username", "value": friend.username, "inline": True},
+                            {"name": "Bio", "value": friend.bio if friend.bio != "" else "None", "inline": False},
+                            {"name": "Avatar Tag", "value": friend.avatar_tag if friend.avatar_tag is not None else "None", "inline": True},
+                            {"name": "Banner Tag", "value": friend.banner_tag if friend.banner_tag is not None else "None", "inline": True}
+                        ],
+                    }]
+                    })
             nfriends.append(friend)
         
             time.sleep(8)
