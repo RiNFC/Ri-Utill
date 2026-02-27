@@ -6,8 +6,6 @@ import threading
 import dotenv
 import os
 import Addons.rpc as rpc
-import Addons.discfm as discfm
-import Addons.bot as mrsir
 from Addons.notify import notify
 from flask import Flask, request
 import signal
@@ -55,12 +53,6 @@ def dt():
         creationflags=subprocess.CREATE_NO_WINDOW
     )
 
-def start_mrsir():
-    subprocess.Popen(
-        [sys.executable, "Addons/bot.py"],
-        creationflags=subprocess.CREATE_NO_WINDOW
-    )
-
 arfa = []
 def on_exit(icon, item):
     global arfa
@@ -83,22 +75,28 @@ icon = Icon(
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     os.kill(os.getpid(), signal.SIGINT)
-
+    
 @app.route('/notify', methods=['POST'])
 def notification():
     global icon
-    content = request.form.get('content')
-    title = request.form.get('title')
+    data = request.json
+    if not data:
+        return 'No command received', 400
+    
+    content = data.get('content')
+    title = data.get('title')
+
     if content:
         icon.notify(content, title)
         return 'Command received', 200
+    
     return 'No command received', 400
 
 
 
-addon_run_functions = [rpc.run, discfm.run, mrsir.run]
-addon_names = ["RPC", "Disc FM", "Bot"]
-addon_run_functions_args = [(start,), (webhook,), ()]
+addon_run_functions = [rpc.run]
+addon_names = ["RPC"]
+addon_run_functions_args = [(start,)]
 addon_threads = []
 
 
@@ -125,7 +123,7 @@ def setup_tray():
         
     icon_thread = threading.Thread(target=icon.run, daemon=True)
     icon_thread.start() 
-    app.run(host='127.0.0.1', port=5766)
+    app.run(host='0.0.0.0', port=5766)
 
 
 
