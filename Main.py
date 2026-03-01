@@ -6,6 +6,7 @@ import threading
 import dotenv
 import os
 import Addons.rpc as rpc
+from Addons.midi import run as midi_run
 from Addons.notify import notify
 from flask import Flask, request
 import signal
@@ -94,9 +95,9 @@ def notification():
 
 
 
-addon_run_functions = [rpc.run]
-addon_names = ["RPC"]
-addon_run_functions_args = [(start,)]
+addon_run_functions = [rpc.run, midi_run]
+addon_names = ["RPC", "MIDI"]
+addon_run_functions_args = [(start,), (None,)]
 addon_threads = []
 
 
