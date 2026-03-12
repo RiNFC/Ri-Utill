@@ -1,10 +1,12 @@
 import time
 import discord
 import threading
+import json
 import pypresence
 from pypresence import DiscordNotFound
 import dotenv
 import os
+
 
 dotenv.load_dotenv()
 
@@ -12,9 +14,16 @@ client = discord.Client()
 
 currently_in_voice_channel = False
 timeinvc = 0
-vcstarttime = 0
 msgcount = 0
 tstart = 0
+
+if os.path.exists(".data"):
+    with open(".data", "r") as f:
+        data = json.load(f)
+        timeinvc = data.get("timeinvc", 0)
+        msgcount = data.get("msgcount", 0)
+    os.remove(".data")
+
 
 def rpc():
     global tstart
@@ -54,7 +63,7 @@ def cnt():
     global msgcount
     while True:
         if currently_in_voice_channel:
-            timeinvc = int(time.time()) - vcstarttime
+            timeinvc += 1
         if time.localtime().tm_hour == 0 and time.localtime().tm_min == 0:
             timeinvc = 0
             msgcount = 0
@@ -79,7 +88,6 @@ async def on_voice_state_update(member, before, after):
     if member.id == 263419445022687232:
         if after.channel is not None:
             currently_in_voice_channel = True
-            vcstarttime = int(time.time())
         else:
             currently_in_voice_channel = False
 
