@@ -1,99 +1,71 @@
+import psutil
 import time
-import discord
-import threading
-import pypresence
-from pypresence import DiscordNotFound
-import dotenv
-import os
+from pypresence import Presence
 
-dotenv.load_dotenv()
 
-client = discord.Client()
-
-currently_in_voice_channel = False
-timeinvc = 0
-vcstarttime = 0
-msgcount = 0
-tstart = 0
-
-def rpc():
-    global tstart
-    global timeinvc
-    global msgcount
-
-    st = int(time.time())
-    rpc = pypresence.Presence("1428085437213179954", pipe=0)
-    rpc.connect()
-
-    while True:
+def vrchat_running_via_steam():
+    for proc in psutil.process_iter(['name', 'ppid']):
         try:
-            rpc.update(
-                state=f"{msgcount} messages sent today.",
-                details=f"{timeinvc // 60}m {timeinvc % 60}s in VC Today.",
-                small_image="bug",
-                small_text="Drawn by Bug.",
-                large_image="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXRyb2h0ZDJjczE5NWl4YWx6YWZ1MWJrZW5tcnFodXozdTlnbmxzbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/a0qcvETjmcHF1O1P9t/giphy.gif",
-                large_text="W.O.P.R. is thinking all the time.",
-                large_url="https://en.wikipedia.org/wiki/WarGames",
-                start=st,
-                buttons=[{
-                        "label": "VRChat",
-                        "url": "https://vrchat.com/home/user/usr_bd418c2c-216e-40cf-b072-26574d66f065"},
+            if proc.info['name'] == "VRChat.exe":
+                parent = psutil.Process(proc.info['ppid'])
+                if parent.name().lower() == "steam.exe":
+                    return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied): pass
+    return False
 
-                        {"label": "null",
-                        "url": "https://ri-rye.xyz"}])
+def get_speeds(interval=1):
+    net1 = psutil.net_io_counters()
+    time.sleep(interval)
+    net2 = psutil.net_io_counters()
 
-        except DiscordNotFound:
-            print("Discord closed. Waiting 60 seconds before reconnect...")
-            time.sleep(60)
+    down = (net2.bytes_recv - net1.bytes_recv) * 8 / interval / 1_000_000
+    up = (net2.bytes_sent - net1.bytes_sent) * 8 / interval / 1_000_000
 
-        time.sleep(5)
-
-def cnt():
-    global timeinvc
-    global msgcount
-    while True:
-        if currently_in_voice_channel:
-            timeinvc = int(time.time()) - vcstarttime
-        if time.localtime().tm_hour == 0 and time.localtime().tm_min == 0:
-            timeinvc = 0
-            msgcount = 0
-        time.sleep(1)
-
-
-rpc_thread = threading.Thread(target=rpc)
-cnt_thread = threading.Thread(target=cnt)
-
-@client.event
-async def on_ready():
-    rpc_thread.start()
-    cnt_thread.start()
-
-
-
-@client.event
-async def on_voice_state_update(member, before, after):
-    global currently_in_voice_channel
-    global vcstarttime
-    global timeinvc
-    if member.id == 263419445022687232:
-        if after.channel is not None:
-            currently_in_voice_channel = True
-            vcstarttime = int(time.time())
-        else:
-            currently_in_voice_channel = False
-
-
-@client.event
-async def on_message(message):
-    global msgcount
-    if message.author == client.user:
-        msgcount += 1
-
-
+    return down, up
 
 
 def run(*args):
-    global tstart
-    tstart = args[1]
-    client.run(os.getenv('disctoken'), reconnect=True)
+    CLIENT_ID = "1428085437213179954"
+
+    rpc = Presence(CLIENT_ID, pipe=0)
+    rpc.connect()
+
+    vrchat_active = False 
+
+    while not args[0].is_set():
+        if vrchat_running_via_steam():
+
+            if not vrchat_active:
+                print("VRChat detected — clearing activity")
+                try: rpc.clear()
+                except: pass
+                vrchat_active = True
+
+            time.sleep(3)
+            continue
+
+        else:
+            if vrchat_active:
+                print("VRChat closed — restoring activity")
+                vrchat_active = False
+        download_speed, upload_speed = get_speeds()
+
+        try:
+            rpc.update(
+                state=f"Dwn /|{download_speed:.2f} Mbps|\\",
+                details=f"Up /|{upload_speed:.2f} Mbps|\\",
+                large_image="cpu",
+                small_image="chair",
+                small_text="Chair.",
+                large_text="Sanctitas tua",
+                start=args[1],
+                buttons=[
+                    {
+                        "label": "VRChat",
+                        "url": "https://vrchat.com/home/user/usr_bd418c2c-216e-40cf-b072-26574d66f065"},
+                    {
+                        "label": "null",
+                        "url": "https://ri-rye.xyz"}])
+        except: break
+
+        time.sleep(1)
